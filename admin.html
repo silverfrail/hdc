@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Food Feed</title>
+    <style>
+        body { font-family: sans-serif; background-color: #f4f4f9; padding: 20px; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #f8f9fa; cursor: pointer; color: #007bff; }
+        .delete-btn { color: red; cursor: pointer; font-weight: bold; border: none; background: none; }
+    </style>
+</head>
+<body>
+    <script>
+        // Very basic password protection for your 5 users
+        const password = prompt("Enter Admin Password:");
+        if (password !== "YourSuperSecretPassword123") {
+            document.body.innerHTML = "<h1>Access Denied</h1>";
+            window.location.href = "index.html";
+        }
+    </script>
+
+    <h1>Admin Dashboard</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Name</th>
+                <th>Food</th>
+                <th>Rating</th>
+                <th>Review</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="admin-body"></tbody>
+    </table>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCLxHEYoivEZ1t0aRasBEt2CPVwxxYHgI8",
+            authDomain: "howsdachow.firebaseapp.com",
+            projectId: "howsdachow",
+            storageBucket: "howsdachow.firebasestorage.app",
+            messagingSenderId: "738544239426",
+            appId: "1:738544239426:web:1e5e76d0459ac17d3dfedb"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        async function loadAdminReviews() {
+            const querySnapshot = await getDocs(collection(db, "reviews"));
+            const tableBody = document.getElementById('admin-body');
+            tableBody.innerHTML = "";
+            
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                tableBody.innerHTML += `<tr>
+                    <td>${data.createdAt ? data.createdAt.substring(0, 10) : 'N/A'}</td>
+                    <td>${data.name}</td>
+                    <td>${data.food}</td>
+                    <td>${data.rating} / ${data.scale}</td>
+                    <td>${data.text}</td>
+                    <td><button class="delete-btn" onclick="deleteEntry('${doc.id}')">Delete</button></td>
+                </tr>`;
+            });
+        }
+
+        window.deleteEntry = async (id) => {
+            if (confirm("Are you sure you want to delete this entry?")) {
+                await deleteDoc(doc(db, "reviews", id));
+                loadAdminReviews();
+            }
+        };
+
+        loadAdminReviews();
+    </script>
+</body>
+</html>
