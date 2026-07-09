@@ -1,0 +1,87 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Kitchen</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 500px; margin: auto; }
+        input, textarea, button { display: block; width: 100%; margin-bottom: 15px; padding: 12px; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; }
+        button { background-color: #007bff; color: white; border: none; font-weight: bold; cursor: pointer; }
+        /* The Overlay */
+        #scale-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
+        .overlay-content { background: white; padding: 20px; border-radius: 10px; width: 80%; text-align: center; }
+        .overlay-content button { margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Add a Review</h1>
+    <form id="review-form">
+        <input type="text" id="name" placeholder="Your Name" required>
+        <input type="text" id="food" placeholder="Food Name" required>
+        <input type="number" id="rating" placeholder="Rating (1-100)" min="1" max="100" required>
+        <textarea id="text" placeholder="What did you think?" rows="4"></textarea>
+        <button type="submit">Submit Review</button>
+    </form>
+
+    <div id="scale-overlay">
+        <div class="overlay-content">
+            <h3>Choose your scale:</h3>
+            <button onclick="confirmSubmission(10)">1 - 10 Scale</button>
+            <button onclick="confirmSubmission(100)">1 - 100 Scale</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCLxHEYoivEZ1t0aRasBEt2CPVwxxYHgI8",
+            authDomain: "howsdachow.firebaseapp.com",
+            projectId: "howsdachow",
+            storageBucket: "howsdachow.firebasestorage.app",
+            messagingSenderId: "738544239426",
+            appId: "1:738544239426:web:1e5e76d0459ac17d3dfedb"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let pendingData = {};
+
+        document.getElementById('review-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const rating = parseInt(document.getElementById('rating').value);
+            
+            if (rating > 100) { alert("Rating cannot be over 100"); return; }
+
+            pendingData = {
+                name: document.getElementById('name').value,
+                food: document.getElementById('food').value,
+                rating: rating,
+                text: document.getElementById('text').value
+            };
+            document.getElementById('scale-overlay').style.display = 'flex';
+        });
+
+        window.confirmSubmission = async (scale) => {
+            if (scale === 10 && pendingData.rating > 10) {
+                alert("That rating is over 10! Please go back and change it.");
+                document.getElementById('scale-overlay').style.display = 'none';
+                return;
+            }
+
+            await addDoc(collection(db, "reviews"), { 
+                ...pendingData, 
+                scale: scale,
+                createdAt: new Date().toISOString() 
+            });
+            
+            alert("Review saved!");
+            document.getElementById('scale-overlay').style.display = 'none';
+            document.getElementById('review-form').reset();
+        };
+    </script>
+</body>
+</html>
