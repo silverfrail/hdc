@@ -1,0 +1,123 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Kitchen Portal</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 400px; margin: auto; }
+        .hidden { display: none; }
+        .error { color: red; font-size: 0.8em; }
+    </style>
+</head>
+<body>
+
+    <div id="auth-view">
+        <div id="login-section">
+            <h2>Sign In</h2>
+            <input type="email" id="login-email" placeholder="Email"><br>
+            <input type="password" id="login-password" placeholder="Password"><br>
+            <button id="login-btn">Sign In</button>
+            <p>New? <button onclick="toggleView('register-section')">Register</button></p>
+            <p>No access? <button onclick="toggleView('request-section')">Request Access</button></p>
+        </div>
+
+        <div id="register-section" class="hidden">
+            <h2>Register</h2>
+            <input type="email" id="reg-email" placeholder="Email"><br>
+            <input type="password" id="reg-pass1" placeholder="Password"><br>
+            <input type="password" id="reg-pass2" placeholder="Confirm Password"><br>
+            <button id="register-btn">Create Account</button>
+            <button onclick="toggleView('login-section')">Back</button>
+        </div>
+
+        <div id="request-section" class="hidden">
+            <h2>Request Access</h2>
+            <input type="email" id="req-email" placeholder="Your Email"><br>
+            <button id="request-btn">Submit Request</button>
+            <button onclick="toggleView('login-section')">Back</button>
+        </div>
+    </div>
+
+    <div id="app-content" class="hidden">
+        <h1>Submit Review</h1>
+        <form id="review-form">
+            <input type="text" id="food" placeholder="Food Name" required><br>
+            <input type="number" id="rating" placeholder="Rating (1-10)" required><br>
+            <textarea id="review" placeholder="Write your review..."></textarea><br>
+            <button type="submit">Submit Review</button>
+        </form>
+        <button id="logout-btn">Logout</button>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendEmailVerification, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+        // IMPORTANT: Replace this object with your actual Firebase config from your project settings
+        const firebaseConfig = {
+            apiKey: "AIzaSyCLxHEYoivEZ1t0aRasBEt2CPVwxxYHgI8",
+            authDomain: "howsdachow.firebaseapp.com",
+            projectId: "howsdachow",
+            storageBucket: "howsdachow.firebasestorage.app",
+            messagingSenderId: "738544239426",
+            appId: "1:738544239426:web:1e5e76d0459ac17d3dfedb"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        window.toggleView = (id) => {
+            ['login-section', 'register-section', 'request-section'].forEach(s => document.getElementById(s).classList.add('hidden'));
+            document.getElementById(id).classList.remove('hidden');
+        };
+
+        document.getElementById('request-btn').onclick = async () => {
+            try {
+                const email = document.getElementById('req-email').value;
+                if(!email) throw new Error("Please enter an email");
+                await addDoc(collection(db, "pending_requests"), { email: email });
+                alert("Request sent!");
+                toggleView('login-section');
+            } catch (e) {
+                alert("Error: " + e.message);
+            }
+        };
+
+        document.getElementById('register-btn').onclick = async () => {
+            try {
+                const email = document.getElementById('reg-email').value;
+                const p1 = document.getElementById('reg-pass1').value;
+                const p2 = document.getElementById('reg-pass2').value;
+                
+                if(p1 !== p2) throw new Error("Passwords don't match!");
+
+                const userDoc = await getDoc(doc(db, "authorized_users", email));
+                if (!userDoc.exists()) throw new Error("You are not on the approved list yet.");
+
+                const userCred = await createUserWithEmailAndPassword(auth, email, p1);
+                await sendEmailVerification(userCred.user);
+                alert("Account created! Check your email to verify.");
+            } catch (e) { alert("Error: " + e.message); }
+        };
+
+        document.getElementById('login-btn').onclick = () => {
+            signInWithEmailAndPassword(auth, document.getElementById('login-email').value, document.getElementById('login-password').value)
+            .catch(e => alert("Login Error: " + e.message));
+        };
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                document.getElementById('auth-view').classList.add('hidden');
+                document.getElementById('app-content').classList.remove('hidden');
+            } else {
+                document.getElementById('auth-view').classList.remove('hidden');
+                document.getElementById('app-content').classList.add('hidden');
+            }
+        });
+
+        document.getElementById('logout-btn').onclick = () => signOut(auth);
+    </script>
+</body>
+</html>
